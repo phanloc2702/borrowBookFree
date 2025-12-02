@@ -15,6 +15,7 @@ import RegisterPage from "./pages/RegisterPage.tsx";
 import CategoryManagementPage from "./pages/CategoryManagementPage.tsx";
 import BookCreatePage from "./pages/BookCreatePage.tsx";
 import BookUpdatePage from "./pages/BookUpdatePage.tsx";
+import CategoriesPage from "./pages/CategoriesPage.tsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -44,10 +45,7 @@ const router = createBrowserRouter([
         path: "/users/edit/:id",
         element: <UserUpdatePage />,
       },
-      {
-        path: "/categories",
-        element: <CategoryManagementPage/>,
-      },
+      
       {
         path: "/books/create",
         element:<BookCreatePage/>,
@@ -55,6 +53,10 @@ const router = createBrowserRouter([
       {
         path: "/books/edit/:id",
         element:<BookUpdatePage/>,
+      },
+      {
+        path:"/categories",
+        element:<CategoriesPage/>,
       }
     ],
   },

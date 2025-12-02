@@ -13,7 +13,11 @@ const categoryService = {
     // API này thường dùng cho dropdown/select nên không cần phân trang.
     return axiosClient.get(`/categories`);
   },
-
+  getCategories: (page = 0, size = 10, search = "") => {
+    let url = `/categories/filter?page=${page}&size=${size}`;
+    if (search) url += `&keyword=${encodeURIComponent(search)}`;
+    return axiosClient.get(url);
+  },
   // 2. Tạo danh mục mới
   // Endpoint giả định: POST /categories
   createCategory: (formData: CategoryFormData) => {
