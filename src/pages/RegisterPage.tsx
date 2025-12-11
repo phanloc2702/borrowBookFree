@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiSave, FiEye, FiEyeOff, FiUserPlus } from "react-icons/fi";
 import { toast } from "react-toastify";
-// Giả định AuthService có hàm registerUser
 import { authService } from "../services/authService";
 
 // 👉 Định nghĩa kiểu dữ liệu
@@ -10,7 +9,7 @@ interface RegisterFormData {
   username: string;
   email: string;
   password: string;
-  confirmPassword: string; // Thêm trường xác nhận
+  confirmPassword: string;
   fullName: string;
 }
 
@@ -32,22 +31,22 @@ interface PasswordFieldProps {
   placeholder: string;
 }
 
-const PasswordField: React.FC<PasswordFieldProps> = ({ 
-  name, 
-  value, 
-  onChange, 
-  error, 
+const PasswordField: React.FC<PasswordFieldProps> = ({
+  name,
+  value,
+  onChange,
+  error,
   label,
-  placeholder
+  placeholder,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const inputClass = `w-full p-3 pr-10 border rounded-lg focus:outline-none transition duration-150 ${
-    error 
-      ? 'border-red-500 focus:ring-red-500' 
-      : 'border-gray-300 focus:ring-2 focus:ring-amber-500'
+    error
+      ? "border-red-500 focus:ring-red-500"
+      : "border-gray-300 focus:ring-2 focus:ring-amber-500"
   }`;
-  
+
   return (
     <div>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700">
@@ -55,7 +54,7 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
       </label>
       <div className="relative">
         <input
-          type={showPassword ? 'text' : 'password'}
+          type={showPassword ? "text" : "password"}
           id={name}
           name={name}
           value={value}
@@ -64,7 +63,6 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
           placeholder={placeholder}
           required
         />
-        {/* Nút con mắt */}
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
@@ -78,8 +76,8 @@ const PasswordField: React.FC<PasswordFieldProps> = ({
     </div>
   );
 };
-// -----------------------------------------------------------------
 
+// -----------------------------------------------------------------
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -96,9 +94,7 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // 🧩 Xử lý thay đổi input
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -106,12 +102,22 @@ const RegisterPage: React.FC = () => {
   // ✅ Validation mở rộng
   const validate = () => {
     const newErrors: FormErrors = {};
-    if (!formData.username.trim()) newErrors.username = "Username là bắt buộc.";
-    if (!formData.email.trim()) newErrors.email = "Email là bắt buộc.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Email không hợp lệ.";
-    
-    if (formData.password.length < 6) newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
-    
+
+    if (!formData.username.trim())
+      newErrors.username = "Username là bắt buộc.";
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email là bắt buộc.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Email không hợp lệ.";
+    }
+
+    if (!formData.fullName.trim())
+      newErrors.fullName = "Tên đầy đủ là bắt buộc.";
+
+    if (formData.password.length < 6)
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
     }
@@ -130,27 +136,33 @@ const RegisterPage: React.FC = () => {
 
     try {
       setLoading(true);
-      
-      // Dữ liệu gửi đi (Không gửi confirmPassword)
+
+      // Không gửi confirmPassword lên BE
       const { confirmPassword, ...dataToRegister } = formData;
-      
-      const response = await authService.registerUser(dataToRegister); 
-      console.log("API Response:", response.data);
+
+      // authService.register trả về { authenticated, token, user }
+      const { authenticated, token, user } =
+        await authService.register(dataToRegister);
+
+      console.log("Registered:", { authenticated, token, user });
 
       toast.success("✅ Đăng ký thành công! Vui lòng đăng nhập.");
-      // Chuyển hướng đến trang Đăng nhập sau khi đăng ký thành công
-      setTimeout(() => navigate("/login"), 1500); 
-      
+
+      // Nếu muốn auto login có thể lưu token & user ở đây
+      // localStorage.setItem("token", token);
+      // localStorage.setItem("user", JSON.stringify(user));
+
+      setTimeout(() => navigate("/login"), 1500);
     } catch (error: any) {
       console.error("Lỗi khi đăng ký:", error);
-      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi đăng ký!";
+      // authService.register đã throw new Error(message) → dùng error.message
+      const errorMessage = error.message || "Đã xảy ra lỗi khi đăng ký!";
       toast.error(`❌ ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🎨 Class input có highlight lỗi
   const getInputClass = (fieldName: keyof FormErrors) =>
     `w-full p-3 border rounded-lg focus:outline-none transition duration-150 ${
       errors[fieldName]
@@ -159,16 +171,16 @@ const RegisterPage: React.FC = () => {
     }`;
 
   return (
-    // Thiết kế tối giản, tập trung vào form, không có sidebar/header admin
     <div className="bg-gray-100 min-h-screen flex items-center justify-center p-4 sm:p-8">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl border-t-4 border-amber-500">
-        
         <div className="flex flex-col items-center mb-6">
           <FiUserPlus className="text-5xl text-amber-500 mb-3" />
           <h2 className="text-3xl font-extrabold text-gray-800">
             Đăng ký Tài khoản Mới
           </h2>
-          <p className="text-gray-500 text-sm mt-1">Gia nhập cộng đồng người dùng của chúng tôi.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Gia nhập cộng đồng người dùng của chúng tôi.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -209,11 +221,11 @@ const RegisterPage: React.FC = () => {
               <p className="text-sm text-red-500">{errors.email}</p>
             )}
           </div>
-          
-          {/* Full name (Optional) */}
+
+          {/* Full name */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Tên đầy đủ (Tùy chọn)
+              Tên đầy đủ <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -222,11 +234,15 @@ const RegisterPage: React.FC = () => {
               onChange={handleChange}
               className={getInputClass("fullName")}
               placeholder="Tên đầy đủ của bạn"
+              required
             />
+            {errors.fullName && (
+              <p className="text-sm text-red-500">{errors.fullName}</p>
+            )}
           </div>
 
-          {/* Password (Sử dụng component mới) */}
-          <PasswordField 
+          {/* Password */}
+          <PasswordField
             name="password"
             value={formData.password}
             onChange={handleChange}
@@ -234,9 +250,9 @@ const RegisterPage: React.FC = () => {
             label="Mật khẩu"
             placeholder="Mật khẩu (ít nhất 6 ký tự)"
           />
-          
-          {/* Confirm Password (Sử dụng component mới) */}
-          <PasswordField 
+
+          {/* Confirm Password */}
+          <PasswordField
             name="confirmPassword"
             value={formData.confirmPassword}
             onChange={handleChange}
@@ -244,7 +260,6 @@ const RegisterPage: React.FC = () => {
             label="Xác nhận Mật khẩu"
             placeholder="Nhập lại mật khẩu"
           />
-          
 
           {/* Buttons */}
           <div className="pt-4">
@@ -257,18 +272,20 @@ const RegisterPage: React.FC = () => {
                   : "bg-amber-500 hover:bg-amber-600"
               }`}
             >
-              <FiSave className="mr-2" />{" "}
+              <FiSave className="mr-2" />
               {loading ? "Đang đăng ký..." : "Đăng ký Tài khoản"}
             </button>
           </div>
-          
+
           <p className="text-center text-sm text-gray-600 mt-4">
             Đã có tài khoản?{" "}
-            <Link to="/login" className="text-amber-600 hover:text-amber-700 font-medium transition duration-150">
+            <Link
+              to="/login"
+              className="text-amber-600 hover:text-amber-700 font-medium transition duration-150"
+            >
               Đăng nhập ngay
             </Link>
           </p>
-          
         </form>
       </div>
     </div>

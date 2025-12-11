@@ -1,3 +1,4 @@
+// src/pages/admin/BooksPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -9,22 +10,22 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
-  FiBookOpen
+  FiBookOpen,
 } from "react-icons/fi";
-import bookService from "../services/bookService";
-import { toast } from 'react-toastify';
+import bookService from "../../services/bookService";
+import { toast } from "react-toastify";
 
-// Định nghĩa kiểu dữ liệu Sách ĐẦY ĐỦ
+// Giống logic UserHomePage
 interface Book {
   id: number;
   title: string;
   author: string;
-  isbn: string;
+  isbn?: string;
+  description?: string;
   categoryName: string;
-  quantity: number;
-  available_quantity: number;
-  publication_year: number;
-  coverUrl: string; // Thêm trường Ảnh
+  quantity: number;            // tổng
+  availableQuantity: number;   // còn
+  coverUrl: string;
 }
 
 const BooksPage = () => {
@@ -40,11 +41,28 @@ const BooksPage = () => {
     try {
       setLoading(true);
       const res = await bookService.getBooks(pageNumber, size, search);
-      // Giả định cấu trúc response là { data: { content: Book[], totalPages: number } }
-      const data = (res.data as { data: { content: Book[]; totalPages: number } }).data; 
-      
-      setBooks(data.content || []);
-      setTotalPages(data.totalPages || 1);
+
+      // BE có thể trả dạng { data: { content, totalPages } } hoặc { content, totalPages }
+      const payload = res.data?.data || res.data || {};
+      const content = payload.content || [];
+      const total = payload.totalPages ?? 1;
+
+      const mapped: Book[] = content.map((b: any) => ({
+        id: b.id,
+        title: b.title,
+        author: b.author,
+        isbn: b.isbn,
+        description: b.description,
+        categoryName: b.category?.name || b.categoryName || "Khác",
+        quantity: b.quantity ?? 0,
+        availableQuantity: b.availableQuantity ?? 0,
+        coverUrl: b.coverUrl
+          ? `http://localhost:8080/${b.coverUrl}`
+          : "https://placehold.co/80x120?text=No+Cover",
+      }));
+
+      setBooks(mapped);
+      setTotalPages(total);
       setPage(pageNumber);
     } catch (error) {
       toast.error("Lỗi khi tải danh sách sách!");
@@ -66,25 +84,22 @@ const BooksPage = () => {
     e.preventDefault();
     fetchBooks(0, searchTerm);
   };
-  
+
   // --- Hàm xử lý Xóa Sách ---
   const handleDelete = async (id: number) => {
-      if (!window.confirm("Bạn có chắc chắn muốn xóa sách này không?")) {
-          return;
-      }
-      try {
-          await bookService.deleteBook(id);
-          toast.success("Xóa sách thành công!");
-          // Tải lại trang hiện tại sau khi xóa
-          fetchBooks(page, searchTerm); 
-      } catch (error) {
-          toast.error("Lỗi khi xóa sách!");
-          console.error("Delete Book Error:", error);
-      }
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sách này không?")) {
+      return;
+    }
+    try {
+      await bookService.deleteBook(id);
+      toast.success("Xóa sách thành công!");
+      fetchBooks(page, searchTerm);
+    } catch (error) {
+      toast.error("Lỗi khi xóa sách!");
+      console.error("Delete Book Error:", error);
+    }
   };
 
-
-  // --- useEffect Tải dữ liệu lần đầu ---
   useEffect(() => {
     fetchBooks();
   }, []);
@@ -117,15 +132,13 @@ const BooksPage = () => {
         </form>
 
         <div className="flex items-center space-x-3">
-          {/* Nút lọc (tùy chọn) */}
           <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-150 font-medium flex items-center">
             <FiFilter className="mr-2" /> Lọc
             <FiChevronDown className="ml-2" />
           </button>
 
-          {/* Nút Thêm mới (dùng link đến trang quản lý sách đã đổi tên) */}
           <Link
-            to="/books/create" 
+            to="create"
             className="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-150 font-medium"
           >
             <FiPlus className="mr-2" /> Thêm Mới
@@ -141,7 +154,6 @@ const BooksPage = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ID
               </th>
-              {/* Thêm cột ảnh */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Ảnh
               </th>
@@ -154,8 +166,8 @@ const BooksPage = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Danh mục
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
-                SL Tồn (SL Khả dụng)
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Số lượng (Còn / Tổng)
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Thao tác
@@ -165,20 +177,25 @@ const BooksPage = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td
+                  colSpan={7}
+                  className="px-6 py-8 text-center text-gray-500"
+                >
                   Đang tải dữ liệu...
                 </td>
               </tr>
             ) : books.length > 0 ? (
               books.map((book) => (
-                <tr key={book.id} className="hover:bg-gray-50 transition duration-150">
+                <tr
+                  key={book.id}
+                  className="hover:bg-gray-50 transition duration-150"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {book.id}
                   </td>
-                  {/* Hiển thị ảnh */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     <img
-                      src={ `http://localhost:8080/${book.coverUrl}`}
+                      src={book.coverUrl}
                       alt={book.title}
                       className="w-10 h-15 object-cover rounded shadow"
                     />
@@ -193,12 +210,12 @@ const BooksPage = () => {
                     {book.categoryName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                    {book.quantity} ({book.available_quantity})
+                    {book.availableQuantity} / {book.quantity}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <Link
-                        to={`/books/edit/${book.id}`}
+                        to={`/admin/books/edit/${book.id}`}
                         className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50 transition"
                       >
                         <FiEdit className="w-5 h-5" />
@@ -215,7 +232,10 @@ const BooksPage = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500 italic">
+                <td
+                  colSpan={7}
+                  className="px-6 py-8 text-center text-gray-500 italic"
+                >
                   Không tìm thấy sách nào phù hợp.
                 </td>
               </tr>

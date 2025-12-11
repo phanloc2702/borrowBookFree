@@ -1,21 +1,33 @@
-// src/pages/BookCreatePage.tsx
+// src/pages/BookUpdatePage.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiSave, FiXCircle, FiArrowLeft, FiImage, FiBookOpen } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import bookService from '../services/bookService'; 
-import categoryService from '../services/categoryService'; 
+import bookService from '../../services/bookService'; 
+import categoryService from '../../services/categoryService'; 
 
-// Định nghĩa kiểu dữ liệu cho Form
-interface BookFormData {
-    name: string; // Tương ứng với title trong Entity
+// Định nghĩa kiểu dữ liệu cho Sách (Book) - Đồng bộ với Entity
+interface Book {
+    id: string;
+    title: string; // Sử dụng Title từ Entity
     author: string;
     isbn: string; // Thêm ISBN
     description: string; // Thêm Description
+    quantity: number; // Thay thế 'stock'
+    publicationYear: number; // Thay thế 'price'
     categoryId: string;
-    quantity: number | string; // Thay thế 'stock'
-    publicationYear: number | string; // Thay thế 'price'
-    // Không cần imageUrl ở đây vì dùng file
+    coverUrl: string; // Đường dẫn ảnh cũ
+}
+
+// Định nghĩa kiểu dữ liệu cho Form
+interface BookFormData {
+    name: string; // Tên sách được sử dụng trong form (tương ứng với title)
+    author: string;
+    isbn: string;
+    description: string;
+    categoryId: string;
+    quantity: number | string;
+    publicationYear: number | string; 
 }
 
 // Định nghĩa kiểu dữ liệu cho Danh mục (tối giản)
@@ -24,25 +36,28 @@ interface Category {
     name: string;
 }
 
-const BookCreatePage: React.FC = () => {
+const BookUpdatePage: React.FC = () => {
+    const { id: bookId } = useParams<{ id: string }>(); 
     const navigate = useNavigate();
     
     // State
     const [categories, setCategories] = useState<Category[]>([]);
-    const [coverFile, setCoverFile] = useState<File | null>(null); // State cho File
-    const [previewUrl, setPreviewUrl] = useState<string>(''); // State để xem trước ảnh
+    const [coverFile, setCoverFile] = useState<File | null>(null); // File mới để upload
+    const [existingCoverUrl, setExistingCoverUrl] = useState<string>(''); // Đường dẫn ảnh cũ từ API
+    const [previewUrl, setPreviewUrl] = useState<string>(''); // Xem trước (dùng cho ảnh cũ hoặc ảnh mới)
     
     const [formData, setFormData] = useState<BookFormData>({ 
         name: '', 
         author: '', 
-        isbn: '', // Khởi tạo ISBN
-        description: '', // Khởi tạo Description
+        isbn: '',
+        description: '',
         quantity: '', 
         publicationYear: '', 
         categoryId: '', 
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false); 
 
     // --- 1. Tải danh mục (Category) ---
     useEffect(() => {
@@ -51,13 +66,6 @@ const BookCreatePage: React.FC = () => {
                 const res = await categoryService.getAllCategories(); 
                 const loadedCategories: Category[] = res.data.data || res.data;
                 setCategories(loadedCategories || []);
-                
-                if (loadedCategories.length > 0 && !formData.categoryId) {
-                     setFormData(prev => ({ 
-                        ...prev, 
-                        categoryId: loadedCategories[0].id 
-                    }));
-                }
             } catch (error) {
                 toast.error("Lỗi khi tải danh mục.");
                 console.error("Fetch Categories Error:", error);
@@ -66,26 +74,67 @@ const BookCreatePage: React.FC = () => {
         fetchCategories();
     }, []);
 
-    // --- 2. Xử lý thay đổi Input ---
+    // --- 2. Tải dữ liệu Sách (khi chỉnh sửa) ---
+    useEffect(() => {
+        if (!bookId) {
+             navigate('/books/create'); 
+             return;
+        }
+
+        const fetchBook = async () => {
+            try {
+                setLoading(true);
+                const res = await bookService.getBookById(bookId);
+                const data = (res.data.data || res.data) as Book;
+
+                setFormData({
+                    name: data.title || '', // Lấy Title
+                    author: data.author || '',
+                    isbn: data.isbn || '',
+                    description: data.description || '',
+                    quantity: data.quantity, // Lấy Quantity
+                    publicationYear: data.publicationYear, // Lấy Publication Year
+                    categoryId: data.categoryId,
+                });
+                
+                // LƯU ĐƯỜNG DẪN ẢNH CŨ VÀO STATE VÀ PREVIEW
+                setExistingCoverUrl(data.coverUrl || ''); 
+                setPreviewUrl(data.coverUrl || ''); 
+
+            } catch (error) {
+                toast.error("Lỗi khi tải thông tin sách!");
+                console.error("Fetch Book Error:", error);
+                navigate('/admin/books'); 
+            } finally {
+                setLoading(false);
+                setInitialLoadDone(true);
+            }
+        };
+        fetchBook();
+        
+    }, [bookId, navigate]);
+
+
+    // --- 3. Xử lý thay đổi Input ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
-    
+
     // Xử lý thay đổi File
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files ? e.target.files[0] : null;
         setCoverFile(file);
         
         if (file) {
-            setPreviewUrl(URL.createObjectURL(file));
+            setPreviewUrl(URL.createObjectURL(file)); // Hiện file mới
         } else {
-            setPreviewUrl('');
+            setPreviewUrl(existingCoverUrl); // Quay lại ảnh cũ nếu xóa file
         }
     };
 
 
-    // --- 3. Validation cơ bản ---
+    // --- 4. Validation cơ bản ---
     const validate = (): boolean => {
         let newErrors: Record<string, string> = {};
 
@@ -106,7 +155,7 @@ const BookCreatePage: React.FC = () => {
         return Object.keys(newErrors).length === 0;
     };
     
-    // --- 4. Xử lý Submit Form (CREATE) ---
+    // --- 5. Xử lý Submit Form (UPDATE) ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
@@ -130,14 +179,14 @@ const BookCreatePage: React.FC = () => {
             }
 
 
-            // Giả định bookService.createBook đã được cập nhật để chấp nhận FormData
-            await bookService.createBook(formDataPayload); 
+            // Giả định bookService.updateBook đã được cập nhật để chấp nhận FormData
+            await bookService.updateBook(bookId!, formDataPayload);
             
-            toast.success("Thêm sách mới thành công!");
-            navigate('/books'); 
+            toast.success("Cập nhật sách thành công!");
+            navigate('/admin/books'); 
         } catch (error) {
             toast.error(`Thao tác thất bại: ${(error as any).response?.data?.message || 'Lỗi kết nối'}`);
-            console.error("Create Book Error:", error);
+            console.error("Update Book Error:", error);
         } finally {
             setLoading(false);
         }
@@ -146,16 +195,20 @@ const BookCreatePage: React.FC = () => {
     const getInputClass = (fieldName: keyof BookFormData) => 
         `w-full p-3 border rounded-lg focus:ring-2 transition ${errors[fieldName] ? 'border-red-500 focus:ring-red-500' : 'focus:ring-amber-500'}`;
 
+    if (loading && !initialLoadDone) {
+        return <div className="p-6 text-center text-gray-500">Đang tải thông tin sách...</div>;
+    }
+
     return (
         <div className="p-6 bg-white shadow-xl rounded-xl">
             <div className="mb-4">
-                <Link to="/books" className="text-amber-600 hover:text-amber-700 font-medium flex items-center">
+                <Link to="/admin/books" className="text-amber-600 hover:text-amber-700 font-medium flex items-center">
                     <FiArrowLeft className="mr-2" /> Quay lại danh sách Sách
                 </Link>
             </div>
             
             <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-                <FiBookOpen className="mr-3 text-amber-500" /> Thêm Sách Mới
+                <FiBookOpen className="mr-3 text-amber-500" /> Chỉnh sửa Sách (ID: {bookId})
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -265,14 +318,14 @@ const BookCreatePage: React.FC = () => {
                     {/* File Upload cho Ảnh Bìa */}
                     <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Chọn Ảnh Bìa <span className="text-sm text-gray-500">(Tùy chọn)</span>
+                            Thay đổi Ảnh Bìa <span className="text-sm text-gray-500">(Chọn file mới)</span>
                         </label>
                         <input
                             type="file"
                             name="cover"
                             accept="image/*"
                             onChange={handleFileChange}
-                            className="w-full text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 transition duration-150"
+                            className="w-full text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:file:text-amber-700 hover:file:bg-amber-100 transition duration-150"
                         />
                     </div>
                 </div>
@@ -297,10 +350,17 @@ const BookCreatePage: React.FC = () => {
                     <div className="pt-4 border-t border-gray-200">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Xem trước ảnh</label>
                         <img
-                            src={previewUrl}
+                            // Sử dụng URL.createObjectURL nếu là file mới, hoặc prefix URL backend nếu là ảnh cũ
+                            src={coverFile ? previewUrl : `http://localhost:8080/${previewUrl}`} 
                             alt="Ảnh đại diện sách"
                             className="w-32 h-48 object-cover rounded-lg shadow-lg border border-gray-200"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://placehold.co/128x192/f0f0f0/333333?text=Image+Error';
+                            }}
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {coverFile ? "Ảnh mới được chọn" : "Ảnh hiện tại"}
+                        </p>
                     </div>
                 )}
 
@@ -324,7 +384,7 @@ const BookCreatePage: React.FC = () => {
                         }`}
                     >
                         <FiSave className="mr-2" />
-                        {loading ? 'Đang thêm...' : 'Thêm Sách'}
+                        {loading ? 'Đang lưu...' : 'Lưu Thay đổi'}
                     </button>
                 </div>
             </form>
@@ -332,4 +392,4 @@ const BookCreatePage: React.FC = () => {
     );
 };
 
-export default BookCreatePage;
+export default BookUpdatePage;

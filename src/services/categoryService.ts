@@ -18,6 +18,9 @@ const categoryService = {
     if (search) url += `&keyword=${encodeURIComponent(search)}`;
     return axiosClient.get(url);
   },
+  getCategoryById: (id: string | number) => {
+    return axiosClient.get(`/categories/${id}`);
+  },
   // 2. Tạo danh mục mới
   // Endpoint giả định: POST /categories
   createCategory: (formData: CategoryFormData) => {

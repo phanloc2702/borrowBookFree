@@ -124,24 +124,24 @@ const Sidebar = () => {
       <nav className="flex flex-col space-y-2">
         
         {/* Home */}
-        <Link to="/" className={getNavItemClass("/")}>
+        <Link to="/admin" className={getNavItemClass("/")}>
           <div className="flex items-center">
              <FiHome className="text-xl mr-3" /> Home
           </div>
         </Link>
         
         {/* Books */}
-        <ParentNavItem title="Books" path="/books" icon={<FiBookOpen />} hasSubmenu={true} />
+        <ParentNavItem title="Books" path="/admin/books" icon={<FiBookOpen />} hasSubmenu={true} />
         
         {/* Categories */}
-        <ParentNavItem title="Categories" path="/categories" icon={<FiLayers />} hasSubmenu={true} />
+        <ParentNavItem title="Categories" path="/admin/categories" icon={<FiLayers />} hasSubmenu={true} />
         
         {/* Users */}
-        <ParentNavItem title="Users" path="/users" icon={<FiUsers />} hasSubmenu={true} />
+        <ParentNavItem title="Users" path="/admin/users" icon={<FiUsers />} hasSubmenu={true} />
         
         {/* Borrowings */}
-        <ParentNavItem title="Borrowings" path="/borrowings" icon={<FiSend />} hasSubmenu={true} />
-        
+        <ParentNavItem title="Borrowings" path="/admin/borrowings" icon={<FiSend />} hasSubmenu={true} />
+        <ParentNavItem title="BorrowRequest" path="/admin/borrow-requests" icon ={<FiSend />} hasSubmenu={true}/>
       </nav>
     </aside>
   );

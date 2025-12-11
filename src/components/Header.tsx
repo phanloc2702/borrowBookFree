@@ -97,21 +97,7 @@ const Header = () => {
                 className="absolute right-0 top-full w-48 bg-slate-800 rounded-lg shadow-xl py-2 border border-slate-700 origin-top-right"
                 style={{ zIndex: 20 }}
               >
-                <Link
-                  to="/profile"
-                  className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-amber-400 transition duration-150"
-                  onClick={() => setIsProfileOpen(false)}
-                >
-                  <FiUser className="mr-3" /> Hồ sơ
-                </Link>
-
-                <Link
-                  to="/my-borrowings"
-                  className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-amber-400 transition duration-150"
-                  onClick={() => setIsProfileOpen(false)}
-                >
-                  <FiBookOpen className="mr-3" /> Sách đang mượn
-                </Link>
+                
 
                 <div className="border-t border-slate-700 my-1"></div>
 

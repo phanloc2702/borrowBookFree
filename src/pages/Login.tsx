@@ -1,21 +1,49 @@
-import React from "react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {authService}  from "../services/authService";
+import React, { useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { authService } from "../services/authService";
+
 const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  
   const [error, setError] = useState<string | null>(null);
+
   const navigate = useNavigate();
+  const location = useLocation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     try {
+      // 👇 Giả sử API trả về { token, user: { id, name, role } }
       const res = await authService.login({ email, password });
-      localStorage.setItem("token", res.token);
-      navigate("/"); // chuyển hướng sau khi đăng nhập thành công
+
+      const token = res.token;
+      const user = res.user; // chỉnh lại field này cho khớp với backend của bạn
+
+      // Lưu token + user vào localStorage
+      localStorage.setItem("token", token);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      // Nếu bị redirect từ PrivateRoute thì quay lại trang đó
+      const from = (location.state as any)?.from?.pathname;
+
+      if (from) {
+        navigate(from, { replace: true });
+        return;
+      }
+
+      // Không có from -> điều hướng theo role
+      const role = user?.role;
+
+      if (role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else {
+        // mặc định là user
+        navigate("/", { replace: true });
+      }
     } catch (error: any) {
       setError(error.message || "Đăng nhập thất bại");
     }
@@ -40,10 +68,7 @@ const Login = () => {
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => {
-                setError(null);
-                
-              }}
+              onFocus={() => setError(null)}
               required
             />
           </div>
@@ -59,13 +84,11 @@ const Login = () => {
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => {
-                setError(null);
-               
-              }}
+              onFocus={() => setError(null)}
               required
             />
           </div>
+
           {error && (
             <div className="mb-4 text-sm text-red-500 text-center">{error}</div>
           )}
@@ -77,7 +100,6 @@ const Login = () => {
           >
             Login
           </button>
-          
         </form>
 
         {/* Divider */}
@@ -103,9 +125,9 @@ const Login = () => {
         {/* Link register */}
         <p className="text-center text-sm text-gray-500 mt-6">
           Don’t have an account?{" "}
-          <a href="/register" className="text-blue-500 hover:underline">
+          <Link to="/register" className="text-blue-500 hover:underline">
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>

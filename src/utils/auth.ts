@@ -12,5 +12,6 @@ export const getToken = (): string | null => {
   // Đăng xuất (xóa token)
   export const logout = (): void => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
   

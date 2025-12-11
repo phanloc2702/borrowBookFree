@@ -10,7 +10,7 @@ import {
   FiChevronRight 
 } from "react-icons/fi";
 import { toast } from "react-toastify";
-import categoryService from "../services/categoryService"; 
+import categoryService from "../../services/categoryService"; 
 
 // Định nghĩa kiểu dữ liệu cho Danh mục
 interface Category {
@@ -125,7 +125,7 @@ const CategoriesPage: React.FC = () => {
         
         {/* Thêm mới */}
         <Link
-          to="/categories/create" 
+          to="/admin/categories/create" 
           className="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-150 font-medium shadow-md"
         >
           <FiPlus className="mr-2" /> Thêm Danh mục mới
@@ -173,7 +173,7 @@ const CategoriesPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <Link
-                        to={`/categories/edit/${category.id}`} 
+                        to={`/admin/categories/edit/${category.id}`} 
                         className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50 transition"
                         title="Sửa danh mục"
                       >

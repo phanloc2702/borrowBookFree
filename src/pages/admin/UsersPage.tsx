@@ -11,7 +11,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-import userService from "../services/userService";
+import userService from "../../services/userService";
 
 
 interface User {
@@ -108,7 +108,7 @@ const UsersPage = () => {
         </div>
 
         <Link
-          to="/users/create"
+          to="create"
           className="flex items-center px-4 py-2 text-sm font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition duration-150 shadow-md"
         >
           <FiPlus className="mr-2" /> Thêm người dùng mới
@@ -193,7 +193,7 @@ const UsersPage = () => {
                           <FiEye className="text-lg" />
                         </Link>
                         <Link
-                          to={`/users/edit/${user.id}`}
+                          to={`/admin/users/edit/${user.id}`}
                           className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50 transition"
                           title="Sửa"
                         >
